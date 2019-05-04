@@ -22,13 +22,13 @@ func (hs *HTTPServer) RenderToPng(c *m.ReqContext) {
 
 	queryParams := fmt.Sprintf("?%s", c.Req.URL.RawQuery)
 
-	width, err := strconv.Atoi(queryReader.Get("width", "800"))
+	width, err := strconv.Atoi(queryReader.Get("width", "0"))
 	if err != nil {
 		c.Handle(400, "Render parameters error", fmt.Errorf("Cannot parse width as int: %s", err))
 		return
 	}
 
-	height, err := strconv.Atoi(queryReader.Get("height", "400"))
+	height, err := strconv.Atoi(queryReader.Get("height", "0"))
 	if err != nil {
 		c.Handle(400, "Render parameters error", fmt.Errorf("Cannot parse height as int: %s", err))
 		return
