@@ -25,6 +25,9 @@
       'domain': params.domain,
     });
 
+    if (params.width == 0) delete params.width
+    if (params.height == 0) delete params.height
+
     page.viewportSize = {
       width: params.width || '800',
       height: params.height || '400'
@@ -35,7 +38,7 @@
     var totalWaitMs = 0;
 
     page.open(params.url, function (status) {
-      console.log('Loading a web page: ' + params.url + ' status: ' + status, timeoutMs);
+      console.log('Loading a web page: ' + params.url + ' status: ' + status, timeoutMs, params.width || '800');
 
       page.onError = function(msg, trace) {
         var msgStack = ['ERROR: ' + msg];
@@ -56,17 +59,17 @@
 
         if (panelsRendered || totalWaitMs > timeoutMs) {
           var bb = page.evaluate(function () {
-            var container = document.getElementsByClassName("dashboard-container")
+            var container = document.getElementsByClassName("react-grid-layout")
             if (container.length == 0) {
                container = document.getElementsByClassName("panel-container")
             }
             return container[0].getBoundingClientRect();
           });
-          
+
           // reset viewport to render full page
           page.viewportSize = {
-            width: bb.width,
-            height: bb.height
+            width: params.width || ( bb.width + bb.left ),
+            height: params.height || ( bb.height + bb.top ),
           };
 
           page.render(params.png);
