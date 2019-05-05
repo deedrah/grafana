@@ -214,6 +214,15 @@ export class BackendSrv implements BackendService {
     return merge(successStream, failureStream)
       .pipe(
         catchError((err: ErrorResponse) => {
+          if ((err.status === this.HTTP_REQUEST_CANCELED || err.status === 405) && options.getUrl) {
+            options.url = options.getUrl;
+            options.method = 'GET';
+            delete options.data;
+            delete options.headers['Content-Type'];
+            delete options.getUrl;
+            return this.datasourceRequest(options);
+          }
+
           // populate error obj on Internal Error
           if (typeof err.data === 'string' && err.status === 500) {
             err.data = {
