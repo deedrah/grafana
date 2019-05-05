@@ -197,6 +197,15 @@ export class BackendSrv implements BackendService {
         return response;
       })
       .catch((err: any) => {
+        if ((err.status === this.HTTP_REQUEST_CANCELED || err.status === 405) && options.getUrl) {
+          options.url = options.getUrl;
+          options.method = 'GET';
+          delete options.data;
+          delete options.headers['Content-Type'];
+          delete options.getUrl;
+          return this.datasourceRequest(options);
+        }
+
         if (err.status === this.HTTP_REQUEST_CANCELED) {
           throw { err, cancelled: true };
         }
