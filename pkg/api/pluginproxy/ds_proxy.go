@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -113,6 +114,9 @@ func (proxy *DataSourceProxy) HandleRequest() {
 	if err != nil {
 		proxy.ctx.JsonApiErr(400, "Unable to load TLS certificate", err)
 		return
+	}
+	if proxy.ds.Type == models.DS_PROMETHEUS && proxy.ctx.Req.Request.Method == "POST" && proxy.ctx.Req.Request.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
+		reverseProxy.Transport = &RetryWithGet{delegate: reverseProxy.Transport}
 	}
 
 	reverseProxy.Transport = &handleResponseTransport{
@@ -226,9 +230,6 @@ func (proxy *DataSourceProxy) validateRequest() error {
 		}
 		if proxy.ctx.Req.Request.Method == "PUT" {
 			return errors.New("Puts not allowed on proxied Prometheus datasource")
-		}
-		if proxy.ctx.Req.Request.Method == "POST" && !(proxy.proxyPath == "api/v1/query" || proxy.proxyPath == "api/v1/query_range") {
-			return errors.New("Posts not allowed on proxied Prometheus datasource except on /query and /query_range")
 		}
 	}
 
@@ -354,4 +355,61 @@ func tokensEq(t1, t2 *oauth2.Token) bool {
 		t1.RefreshToken == t2.RefreshToken &&
 		t1.Expiry == t2.Expiry &&
 		t1.TokenType == t2.TokenType
+}
+
+type RetryWithGet struct {
+	delegate http.RoundTripper
+}
+
+func (rtg *RetryWithGet) RoundTrip(req *http.Request) (*http.Response, error) {
+	var buffer []byte
+
+	if req.GetBody == nil {
+		buffer, err := ioutil.ReadAll(req.Body)
+		if err != nil {
+			return nil, err
+		}
+		req.GetBody = func() (io.ReadCloser, error) {
+			return ioutil.NopCloser(bytes.NewReader(buffer)), nil
+		}
+		req.Body, _ = req.GetBody()
+	}
+
+	resp, err := rtg.delegate.RoundTrip(req)
+	if err != nil {
+		return resp, err
+	}
+	if resp.StatusCode != 405 {
+		return resp, err
+	}
+
+	getReq := new(http.Request)
+	*getReq = *req
+
+	getReq.Method = "GET"
+
+	getReq.Body = nil
+	getReq.ContentLength = 0
+	getReq.Header.Del("Content-Length")
+	getReq.Header.Del("Content-Type")
+
+	if buffer == nil {
+		body, err := req.GetBody()
+		if err != nil {
+			return resp, err
+		}
+		defer body.Close()
+		buffer, err = ioutil.ReadAll(body)
+		if err != nil {
+			return resp, err
+		}
+	}
+
+	getURL := new(url.URL)
+	*getURL = *req.URL
+	getReq.URL = getURL
+	getReq.URL.RawQuery = string(buffer)
+
+	resp, err = rtg.delegate.RoundTrip(getReq)
+	return resp, err
 }

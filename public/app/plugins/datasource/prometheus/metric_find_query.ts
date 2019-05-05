@@ -70,14 +70,8 @@ export default class PrometheusMetricFindQuery {
     } else {
       const start = this.datasource.getPrometheusTime(this.range.from, false);
       const end = this.datasource.getPrometheusTime(this.range.to, true);
-      const params = new URLSearchParams({
-        'match[]': metric,
-        start: start.toString(),
-        end: end.toString(),
-      });
-      url = `/api/v1/series?${params.toString()}`;
 
-      return this.datasource.metadataRequest(url).then((result: any) => {
+      return this.datasource.performSeriesRequest(metric, start, end).then((result: any) => {
         const _labels = _.map(result.data.data, metric => {
           return metric[label] || '';
         }).filter(label => {
@@ -139,15 +133,9 @@ export default class PrometheusMetricFindQuery {
   metricNameAndLabelsQuery(query: string) {
     const start = this.datasource.getPrometheusTime(this.range.from, false);
     const end = this.datasource.getPrometheusTime(this.range.to, true);
-    const params = new URLSearchParams({
-      'match[]': query,
-      start: start.toString(),
-      end: end.toString(),
-    });
-    const url = `/api/v1/series?${params.toString()}`;
 
     const self = this;
-    return this.datasource.metadataRequest(url).then((result: PromDataQueryResponse) => {
+    return this.datasource.performSeriesRequest(query, start, end).then((result: PromDataQueryResponse) => {
       return _.map(result.data.data, (metric: { [key: string]: string }) => {
         return {
           text: self.datasource.getOriginalMetricName(metric),
