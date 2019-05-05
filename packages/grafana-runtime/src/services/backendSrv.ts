@@ -70,6 +70,8 @@ export type BackendSrvRequest = {
    * @deprecated withCredentials is deprecated in favor of credentials
    */
   withCredentials?: boolean;
+
+  getUrl?: string;
 };
 
 /**
