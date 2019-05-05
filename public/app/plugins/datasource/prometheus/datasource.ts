@@ -46,6 +46,7 @@ interface RequestOptions {
   withCredentials?: boolean;
   silent?: boolean;
   requestId?: string;
+  getUrl?: string;
 }
 
 export interface PromDataQueryResponse {
@@ -126,19 +127,28 @@ export class PrometheusDatasource extends DataSourceApi<PromQuery, PromOptions> 
       headers: {},
     });
 
+    let getUrl = null;
+
+    if (data && Object.keys(data).length) {
+      getUrl =
+        options.url +
+        '?' +
+        Object.entries(data)
+          .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+          .join('&');
+    }
+
     if (options.method === 'GET') {
-      if (data && Object.keys(data).length) {
-        options.url =
-          options.url +
-          '?' +
-          Object.entries(data)
-            .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
-            .join('&');
+      if (getUrl) {
+        options.url = getUrl;
       }
     } else {
       options.headers['Content-Type'] = 'application/x-www-form-urlencoded';
       options.transformRequest = (data: any) => $.param(data);
       options.data = data;
+      if (getUrl) {
+        options.getUrl = getUrl;
+      }
     }
 
     if (this.basicAuth || this.withCredentials) {
@@ -492,6 +502,19 @@ export class PrometheusDatasource extends DataSourceApi<PromQuery, PromOptions> 
     };
 
     return response.data.data.filter(metricName => metricName.indexOf(query) !== 1);
+  }
+
+  performSeriesRequest(query: string, start: any = null, end: any = null) {
+    const url = '/api/v1/series';
+    const data: any = {
+      start: start,
+      end: end,
+    };
+    data['match[]'] = query;
+    if (this.queryTimeout) {
+      data['timeout'] = this.queryTimeout;
+    }
+    return this._request(url, data, {});
   }
 
   metricFindQuery(query: string) {
