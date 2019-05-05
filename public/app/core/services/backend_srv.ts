@@ -116,7 +116,18 @@ export class BackendSrv implements BackendService {
     );
 
     return merge(successStream, failureStream).pipe(
-      catchError((err: FetchError) => throwError(this.processRequestError(options, err))),
+      catchError((err: FetchError) => {
+        if ((err.status === this.HTTP_REQUEST_CANCELED || err.status === 405) && options.getUrl) {
+          options.url = options.getUrl;
+          options.method = 'GET';
+          options.headers = options.headers ?? {};
+          delete options.data;
+          delete options.headers['Content-Type'];
+          delete options.getUrl;
+          return this.internalFetch(options);
+        }
+        return throwError(this.processRequestError(options, err));
+      }),
       this.handleStreamCancellation(options)
     );
   }

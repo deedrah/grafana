@@ -22904,7 +22904,7 @@ rst-selector-parser@^2.2.3:
 
 "rst2html@github:thoward/rst2html#990cb89":
   version "1.0.4"
-  resolved "https://codeload.github.com/thoward/rst2html/tar.gz/990cb89f2a300cdd9151790be377c4c0840df809"
+  resolved "https://codeload.github.com/thoward/rst2html/tar.gz/990cb89f2a300cdd9151790be377c4c0840df809#442bdc3aa3d78e7f4868c714a566912f93ecfe88"
   dependencies:
     restructured "0.0.11"
 
