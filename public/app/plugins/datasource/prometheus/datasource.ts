@@ -61,14 +61,20 @@ export class PrometheusDatasource implements DataSourceApi<PromQuery> {
       method: this.httpMethod,
     });
 
+    let getUrl = null;
+
+    if (!_.isEmpty(data)) {
+      getUrl =
+        options.url +
+        '?' +
+        _.map(data, (v, k) => {
+          return encodeURIComponent(k) + '=' + encodeURIComponent(v);
+        }).join('&');
+    }
+
     if (options.method === 'GET') {
-      if (!_.isEmpty(data)) {
-        options.url =
-          options.url +
-          '?' +
-          _.map(data, (v, k) => {
-            return encodeURIComponent(k) + '=' + encodeURIComponent(v);
-          }).join('&');
+      if (getUrl) {
+        options.url = getUrl;
       }
     } else {
       options.headers = {
@@ -78,6 +84,9 @@ export class PrometheusDatasource implements DataSourceApi<PromQuery> {
         return $.param(data);
       };
       options.data = data;
+      if (getUrl) {
+        options.getUrl = getUrl;
+      }
     }
 
     if (this.basicAuth || this.withCredentials) {
@@ -270,6 +279,19 @@ export class PrometheusDatasource implements DataSourceApi<PromQuery> {
       data['timeout'] = this.queryTimeout;
     }
     return this._request(url, data, { requestId: query.requestId });
+  }
+
+  performSeriesRequest(query, start = null, end = null) {
+    const url = '/api/v1/series';
+    const data = {
+      start: start,
+      end: end,
+    };
+    data['match[]'] = query;
+    if (this.queryTimeout) {
+      data['timeout'] = this.queryTimeout;
+    }
+    return this._request(url, data, { });
   }
 
   performSuggestQuery(query, cache = false) {
