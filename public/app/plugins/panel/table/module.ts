@@ -277,7 +277,7 @@ class TablePanelCtrl extends MetricsPanelCtrl {
       if (data) {
         renderPanel();
       }
-      ctrl.renderingCompleted();
+      setTimeout(() => {ctrl.renderingCompleted(); }, 1000);
     });
   }
 }
