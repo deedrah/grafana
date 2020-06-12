@@ -36,6 +36,9 @@ export class ResultTransformer {
           seriesList.push(this.transformInstantMetricData(metricData, options));
         }
       }
+      if (seriesList.length < 100) {
+        seriesList.sort(sortSeriesByName);
+      }
       return seriesList;
     }
     return [];
@@ -239,6 +242,18 @@ function sortSeriesByLabel(s1: TimeSeries, s2: TimeSeries): number {
   }
 
   if (le1 < le2) {
+    return -1;
+  }
+
+  return 0;
+}
+
+function sortSeriesByName(s1: TimeSeries, s2: TimeSeries): number {
+  if (s1.target > s2.target) {
+    return 1;
+  }
+
+  if (s1.target < s2.target) {
     return -1;
   }
 
